@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   EnhancedMeeting,
   Meeting,
@@ -85,7 +86,7 @@ export function toMeeting(body: EnhanceRequest): {
       : parseTranscript(asString(body.transcript, "transcript"));
 
   const meeting: Meeting = {
-    id: `req-${Date.now()}`,
+    id: randomUUID(),
     title,
     meetingAt:
       typeof body.meetingAt === "string" ? body.meetingAt : new Date().toISOString(),

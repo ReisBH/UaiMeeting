@@ -61,7 +61,15 @@ npm start            # porta 3000 (ou $PORT); provider automático
 | Rota | Descrição |
 |---|---|
 | `GET /health` | `{ status, provider, model? }` |
-| `POST /enhance` | recebe a reunião, devolve a reunião potencializada |
+| `POST /enhance` | recebe a reunião, gera o resumo, **persiste** e devolve (`201`) |
+| `GET /meetings` | lista paginada das reuniões salvas (`?limit=&offset=`), mais recentes primeiro |
+| `GET /meetings/:id` | uma reunião salva por completo, ou `404` |
+
+As reuniões são persistidas em **SQLite** (via `node:sqlite` nativo, sem build).
+O arquivo padrão é `uaimeeting.db` (configurável com `UAIMEETING_DB`; use
+`:memory:` para efêmero). A listagem devolve itens leves (sem o transcript
+completo) com um `summaryExcerpt`; o transcript inteiro vem no `GET /meetings/:id`
+— a mesma separação lista-vs-detalhe do Granola.
 
 Exemplo:
 
@@ -117,7 +125,8 @@ console.log(enhanced.summary); // Markdown com seções ###
 | `src/providers.ts` | `AnthropicSummarizer` (Claude) e `MockSummarizer` (offline). |
 | `src/enhancer.ts` | Orquestra nota + transcript → resumo + metadados de proveniência. |
 | `src/api.ts` | Validação do request e handler puro (`toMeeting`, `handleEnhance`). |
-| `src/server.ts` | Servidor HTTP (`node:http`) com `/health` e `/enhance`. |
+| `src/store.ts` | Persistência SQLite (`MeetingStore`: `save`, `get`, `list`). |
+| `src/server.ts` | Servidor HTTP (`node:http`) com `/health`, `/enhance` e `/meetings`. |
 | `src/sample.ts` | Reunião sintética de exemplo para a demo e os testes. |
 | `src/demo.ts` | Runner de linha de comando. |
 
