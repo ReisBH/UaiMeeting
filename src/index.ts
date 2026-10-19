@@ -3,6 +3,7 @@ export { parseTranscript, renderTranscript, speakers } from "./transcript.js";
 export { SYSTEM_PROMPT, buildUserMessage } from "./prompt.js";
 export {
   AnthropicSummarizer,
+  MistralSummarizer,
   MockSummarizer,
   createProvider,
   type ProviderKind,

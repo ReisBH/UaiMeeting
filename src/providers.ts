@@ -2,19 +2,31 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { EnhanceInput, SummarizerProvider } from "./types.js";
 import { SYSTEM_PROMPT, buildUserMessage } from "./prompt.js";
 
-export type ProviderKind = "anthropic" | "mock";
+export type ProviderKind = "anthropic" | "mistral" | "mock";
 
 /**
  * Pick a summarizer backend.
  *
- * Explicit `kind` wins; otherwise use Claude when a credential is present
- * (`ANTHROPIC_API_KEY`) and fall back to the offline mock so the service always
- * starts, even without configuration.
+ * Explicit `kind` wins; otherwise use whichever credential is present
+ * (`ANTHROPIC_API_KEY`, then `MISTRAL_API_KEY`) and fall back to the offline
+ * mock so the service always starts, even without configuration.
  */
 export function createProvider(kind?: ProviderKind): SummarizerProvider {
   const resolved: ProviderKind =
-    kind ?? (process.env.ANTHROPIC_API_KEY ? "anthropic" : "mock");
-  return resolved === "anthropic" ? new AnthropicSummarizer() : new MockSummarizer();
+    kind ??
+    (process.env.ANTHROPIC_API_KEY
+      ? "anthropic"
+      : process.env.MISTRAL_API_KEY
+        ? "mistral"
+        : "mock");
+  switch (resolved) {
+    case "anthropic":
+      return new AnthropicSummarizer();
+    case "mistral":
+      return new MistralSummarizer();
+    default:
+      return new MockSummarizer();
+  }
 }
 
 /**
@@ -57,6 +69,74 @@ export class AnthropicSummarizer implements SummarizerProvider {
       .trim();
 
     if (!text) throw new Error("Model returned no summary text");
+    return text;
+  }
+}
+
+/** Minimal shape of a Mistral chat-completions response. */
+interface MistralChatResponse {
+  choices?: Array<{ message?: { content?: string } }>;
+}
+
+/**
+ * Free-tier-friendly backend: summarize with the Mistral API.
+ *
+ * Talks to the OpenAI-compatible chat-completions endpoint over `fetch` (no
+ * SDK dependency). The API key comes from `MISTRAL_API_KEY`; the model from
+ * `MISTRAL_MODEL` (default `mistral-small-latest`, which the free tier covers).
+ * `baseUrl` and `fetchImpl` are injectable for testing.
+ */
+export class MistralSummarizer implements SummarizerProvider {
+  readonly name = "mistral";
+  readonly model: string;
+  private apiKey: string | undefined;
+  private baseUrl: string;
+  private fetchImpl: typeof fetch;
+
+  constructor(
+    opts: {
+      apiKey?: string;
+      model?: string;
+      baseUrl?: string;
+      fetchImpl?: typeof fetch;
+    } = {},
+  ) {
+    this.apiKey = opts.apiKey ?? process.env.MISTRAL_API_KEY;
+    this.model = opts.model ?? process.env.MISTRAL_MODEL ?? "mistral-small-latest";
+    this.baseUrl = (opts.baseUrl ?? "https://api.mistral.ai/v1").replace(/\/$/, "");
+    this.fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+  }
+
+  async summarize(input: EnhanceInput): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error("MISTRAL_API_KEY is not set");
+    }
+
+    const res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model,
+        temperature: 0.3,
+        max_tokens: 4000,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: buildUserMessage(input) },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(`Mistral API error ${res.status}: ${detail.slice(0, 500)}`);
+    }
+
+    const data = (await res.json()) as MistralChatResponse;
+    const text = data.choices?.[0]?.message?.content?.trim();
+    if (!text) throw new Error("Mistral returned no summary text");
     return text;
   }
 }

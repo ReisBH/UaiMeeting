@@ -54,9 +54,23 @@ Sobe um servidor (sem dependências extras, `node:http`) que expõe o enhancer:
 
 ```bash
 npm start            # porta 3000 (ou $PORT); provider automático
-# UAIMEETING_LLM=mock|anthropic força o backend; padrão: anthropic se
-# ANTHROPIC_API_KEY estiver setada, senão mock.
+# UAIMEETING_LLM=mock|anthropic|mistral força o backend.
+# Padrão: anthropic se ANTHROPIC_API_KEY estiver setada; senão mistral se
+# MISTRAL_API_KEY estiver setada; senão mock.
 ```
+
+### Motores de resumo (providers)
+
+O `SummarizerProvider` é plugável; escolha com `UAIMEETING_LLM`:
+
+| Provider | `UAIMEETING_LLM` | Credencial | Modelo (env) |
+|---|---|---|---|
+| Claude | `anthropic` | `ANTHROPIC_API_KEY` | `claude-opus-5-5` |
+| Mistral (free tier) | `mistral` | `MISTRAL_API_KEY` | `MISTRAL_MODEL` (padrão `mistral-small-latest`) |
+| Mock (offline) | `mock` | — | — |
+
+Mistral usa o endpoint de chat-completions via `fetch` (sem SDK). Gere a chave
+no [console.mistral.ai](https://console.mistral.ai/) → API Keys.
 
 | Rota | Descrição |
 |---|---|
@@ -170,7 +184,7 @@ console.log(enhanced.summary); // Markdown com seções ###
 | `src/types.ts` | Modelo de domínio (reunião, bloco de transcript, participante, provider). |
 | `src/transcript.ts` | Parse/render do transcript estilo Granola (fonte de áudio + locutor). |
 | `src/prompt.ts` | System prompt e montagem da mensagem para o LLM. |
-| `src/providers.ts` | `AnthropicSummarizer` (Claude) e `MockSummarizer` (offline). |
+| `src/providers.ts` | `AnthropicSummarizer` (Claude), `MistralSummarizer` (free tier) e `MockSummarizer` (offline). |
 | `src/enhancer.ts` | Orquestra nota + transcript → resumo + metadados de proveniência. |
 | `src/api.ts` | Validação do request e handler puro (`toMeeting`, `handleEnhance`). |
 | `src/store.ts` | Persistência SQLite (`MeetingStore`: `save`, `get`, `list`). |
