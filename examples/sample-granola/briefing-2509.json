@@ -1,0 +1,16 @@
+{
+  "id": "31022057-197f-4d55-b94c-6455e5c3deb0",
+  "title": "Briefing do turno da noite",
+  "meeting_at": "2026-09-25T15:00:33.684-03:00",
+  "created_at": "2026-09-25T15:00:33.684-03:00",
+  "notes": "reservas sem solicitação a partir de amanhã\ncanudos de agave só mesas 30-32\nalergia amendoim mesa 9",
+  "summary": "### Resumo (Granola)\n- Reservas liberadas sem solicitação\n- Alergia a amendoim na mesa 9",
+  "known_participants": [
+    { "name": "Rafael Reis", "email": "rafaelreiss@example.com", "is_note_creator": true },
+    { "name": "Bruno", "email": "bruno@example.com" }
+  ],
+  "folders": [
+    { "id": "5c6c02cc-1c29-4e03-a9af-05def269ea1e", "title": "Briefings", "visibility": "private" }
+  ],
+  "transcript": "Microphone\nSpeaker A: já se podem fazer reservas sem solicitude a partir de amanhã\nSpeaker A: até nove é carta normal, a partir de dez é grupo\nSystem audio\nSpeaker B: os canudos de agave são só para as mesas redondas, 30 a 32\nSpeaker C: tem uma alergia a amendoim na mesa 9, já avisei a cozinha\nSpeaker A: ótimo, quem não souber um prato diz que não sabe, não inventa"
+}

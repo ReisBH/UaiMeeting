@@ -112,6 +112,28 @@ curl -s -X POST localhost:3000/import/granola -H 'content-type: application/json
 Por padrão o UaiMeeting **gera o próprio resumo**. Com `?enhance=false` ele
 importa preservando o `summary` original do Granola (sem chamar o LLM).
 
+### Script de exemplo
+
+`examples/import-from-granola.mjs` é a cola pronta: lê JSON no formato do
+conector (arquivos, pastas ou stdin) e faz o `POST` para o servidor. Ele **não**
+fala com o Granola direto — o conector é MCP (vive numa sessão Claude), não uma
+API pública, e o UaiMeeting não faz engenharia reversa do app. Você obtém o JSON
+pelos meios oficiais (exportando, ou pedindo a uma sessão Claude com o conector
+que salve as reuniões) e aponta o script para ele.
+
+```bash
+npm start                 # terminal 1
+npm run import:example    # terminal 2 — importa os samples sintéticos
+
+# ou manualmente:
+node examples/import-from-granola.mjs examples/sample-granola
+node examples/import-from-granola.mjs --url=http://host:3000 --no-enhance arquivo.json
+cat reuniao.json | node examples/import-from-granola.mjs
+```
+
+Os samples em `examples/sample-granola/` são fictícios (um arquivo único e um
+`{ "meetings": [...] }`) só para o script rodar out-of-the-box.
+
 ## Uso como biblioteca
 
 ```ts

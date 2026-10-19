@@ -11,6 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "tsx src/server.ts",
     "demo": "tsx src/demo.ts",
+    "import:example": "node examples/import-from-granola.mjs examples/sample-granola",
     "test": "vitest run",
     "test:watch": "vitest"
   },

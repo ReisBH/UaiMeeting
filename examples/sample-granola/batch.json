@@ -1,0 +1,20 @@
+{
+  "meetings": [
+    {
+      "id": "a1a166fa-d5c0-40b0-8d04-d6a1d24a1c23",
+      "title": "Melhorias no fluxo operacional",
+      "meeting_at": "2026-10-01T08:18:51.495-03:00",
+      "notes": "café do bar: pedir manutenção\ntake away às 19h30 e 20h",
+      "known_participants": [
+        { "name": "Rafael Reis", "email": "rafaelreiss@example.com", "is_note_creator": true }
+      ],
+      "transcript": "Microphone\nSpeaker A: a máquina de café do bar precisa de limpeza, está saindo fraco\nSpeaker A: pede manutenção hoje\nSystem audio\nSpeaker B: temos take away às 19h30 e às 20h"
+    },
+    {
+      "title": "Formação e gravação de vídeo",
+      "meeting_at": "2026-10-02T08:00:51.998-03:00",
+      "notes": "gravar vídeo de treinamento do serviço",
+      "transcript": "Speaker A: vamos gravar o vídeo de treinamento do serviço esta semana\nSpeaker B: combino a pauta e o roteiro"
+    }
+  ]
+}
