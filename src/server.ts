@@ -3,6 +3,23 @@ import type { SummarizerProvider } from "./types.js";
 import { createProvider, type ProviderKind } from "./providers.js";
 import { ValidationError, handleEnhance, type EnhanceRequest } from "./api.js";
 import { MeetingStore } from "./store.js";
+import { MeetingEnhancer } from "./enhancer.js";
+import { fromGranolaBatch, fromGranolaMeeting } from "./adapters/granola.js";
+import type { EnhancedMeeting, Meeting } from "./types.js";
+
+function noteCreatorEmail(meeting: Meeting): string | undefined {
+  return meeting.participants.find((p) => p.isNoteCreator)?.email;
+}
+
+async function parseJsonBody(req: http.IncomingMessage): Promise<unknown> {
+  const raw = await readBody(req);
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new ValidationError("invalid JSON body");
+  }
+}
 
 const MAX_BODY_BYTES = 2_000_000; // 2 MB - transcripts can be large but bounded.
 
@@ -45,6 +62,8 @@ export interface ServerOptions {
  *   POST /enhance        -> enhance a meeting, persist it, return it
  *   GET  /meetings       -> paged list of stored meetings (?limit=&offset=)
  *   GET  /meetings/:id   -> one stored meeting, or 404
+ *   POST /import/granola -> import Granola meeting(s), enhance, persist
+ *                           (?enhance=false keeps the original Granola summary)
  */
 export function createServer(opts: ServerOptions = {}): http.Server {
   const provider = opts.provider ?? createProvider();
@@ -83,6 +102,48 @@ export function createServer(opts: ServerOptions = {}): http.Server {
           limit: limit === null ? undefined : Number(limit),
           offset: offset === null ? undefined : Number(offset),
         }));
+      }
+
+      if (path === "/import/granola") {
+        if (method !== "POST") return sendJson(res, 405, { error: "method not allowed" });
+        const body = await parseJsonBody(req);
+        const results =
+          Array.isArray(body) ||
+          (typeof body === "object" && body !== null && "meetings" in body)
+            ? fromGranolaBatch(body)
+            : [fromGranolaMeeting(body as Parameters<typeof fromGranolaMeeting>[0])];
+
+        const enhance = url.searchParams.get("enhance") !== "false";
+        const enhancer = new MeetingEnhancer(provider);
+        const created: Array<{ id: string; title: string; provider: string }> = [];
+
+        for (const { meeting, originalSummary } of results) {
+          let enhanced: EnhancedMeeting;
+          if (enhance) {
+            enhanced = await enhancer.enhance(meeting, {
+              connectedUserEmail: noteCreatorEmail(meeting),
+            });
+          } else {
+            if (!originalSummary) {
+              throw new ValidationError(
+                "enhance=false requires an original `summary` in the payload",
+              );
+            }
+            enhanced = {
+              ...meeting,
+              summary: originalSummary,
+              summaryMeta: { provider: "granola-import", generatedAt: new Date().toISOString() },
+            };
+          }
+          store.save(enhanced);
+          created.push({
+            id: enhanced.id,
+            title: enhanced.title,
+            provider: enhanced.summaryMeta.provider,
+          });
+        }
+
+        return sendJson(res, 201, { imported: created.length, meetings: created });
       }
 
       const match = /^\/meetings\/([^/]+)$/.exec(path);

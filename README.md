@@ -64,6 +64,7 @@ npm start            # porta 3000 (ou $PORT); provider automático
 | `POST /enhance` | recebe a reunião, gera o resumo, **persiste** e devolve (`201`) |
 | `GET /meetings` | lista paginada das reuniões salvas (`?limit=&offset=`), mais recentes primeiro |
 | `GET /meetings/:id` | uma reunião salva por completo, ou `404` |
+| `POST /import/granola` | importa reunião(ões) no formato do conector do Granola |
 
 As reuniões são persistidas em **SQLite** (via `node:sqlite` nativo, sem build).
 O arquivo padrão é `uaimeeting.db` (configurável com `UAIMEETING_DB`; use
@@ -85,6 +86,31 @@ O corpo aceita `transcript` (string crua no formato `Speaker X: …`) **ou**
 `transcriptBlocks` (array já estruturado). Campos: `title` (obrigatório),
 `notes`, `participants`, `meetingAt`, `connectedUserEmail`. Erros de validação
 voltam como `400 { error }`.
+
+## Importar do Granola
+
+`POST /import/granola` recebe um objeto no formato do conector oficial do
+Granola (ou um array / `{ "meetings": [...] }`), mapeia para o modelo do
+UaiMeeting, gera o resumo e persiste. Os campos seguem o conector: `id`,
+`title`, `meeting_at`/`created_at`, `notes`, `known_participants`
+(com `is_note_creator`), `folders`, e `transcript` — **string** no formato
+`Speaker X: …` (com marcadores `Microphone`/`System audio`) **ou** array de
+blocos. Veja `docs/HOW-GRANOLA-WORKS.md`.
+
+```bash
+# fluxo típico: um script lê do conector do Granola e faz POST aqui
+curl -s -X POST localhost:3000/import/granola -H 'content-type: application/json' -d '{
+  "id": "0b86e4d8-...",
+  "title": "Briefing 25/09",
+  "meeting_at": "2026-09-25T15:00:33-03:00",
+  "known_participants": [{"name":"Rafael","email":"...","is_note_creator":true}],
+  "notes": "reservas sem solicitação; canudos agave mesas 30-32",
+  "transcript": "Microphone\nSpeaker A: ...\nSystem audio\nSpeaker B: ..."
+}'
+```
+
+Por padrão o UaiMeeting **gera o próprio resumo**. Com `?enhance=false` ele
+importa preservando o `summary` original do Granola (sem chamar o LLM).
 
 ## Uso como biblioteca
 
@@ -126,6 +152,7 @@ console.log(enhanced.summary); // Markdown com seções ###
 | `src/enhancer.ts` | Orquestra nota + transcript → resumo + metadados de proveniência. |
 | `src/api.ts` | Validação do request e handler puro (`toMeeting`, `handleEnhance`). |
 | `src/store.ts` | Persistência SQLite (`MeetingStore`: `save`, `get`, `list`). |
+| `src/adapters/granola.ts` | Importa o formato do conector do Granola para o modelo do UaiMeeting. |
 | `src/server.ts` | Servidor HTTP (`node:http`) com `/health`, `/enhance` e `/meetings`. |
 | `src/sample.ts` | Reunião sintética de exemplo para a demo e os testes. |
 | `src/demo.ts` | Runner de linha de comando. |

@@ -20,3 +20,9 @@ export {
   type MeetingListItem,
   type ListResult,
 } from "./store.js";
+export {
+  fromGranolaMeeting,
+  fromGranolaBatch,
+  type GranolaMeetingInput,
+  type GranolaImportResult,
+} from "./adapters/granola.js";

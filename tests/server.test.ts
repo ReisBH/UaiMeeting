@@ -76,6 +76,61 @@ describe("HTTP server", () => {
     expect(res.status).toBe(404);
   });
 
+  it("POST /import/granola imports, enhances, and persists a batch", async () => {
+    const res = await fetch(`${base}/import/granola`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        meetings: [
+          {
+            id: "imp-1",
+            title: "Importada 1",
+            notes: "ponto",
+            known_participants: [{ name: "Ana", email: "ana@x.com", is_note_creator: true }],
+            transcript: "Microphone\nSpeaker A: discutimos o ponto",
+          },
+          { title: "Importada 2", transcript: "Speaker A: outra reunião" },
+        ],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.imported).toBe(2);
+    expect(body.meetings[0]).toMatchObject({ id: "imp-1", provider: "mock" });
+
+    // It is retrievable with our enhanced summary.
+    const got = await (await fetch(`${base}/meetings/imp-1`)).json();
+    expect(got.title).toBe("Importada 1");
+    expect(got.summary).toContain("###");
+    expect(got.transcript).toHaveLength(1);
+  });
+
+  it("POST /import/granola?enhance=false keeps the original Granola summary", async () => {
+    const res = await fetch(`${base}/import/granola?enhance=false`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: "imp-asis",
+        title: "Sem re-resumo",
+        summary: "### Resumo original do Granola",
+        transcript: "Speaker A: conteúdo",
+      }),
+    });
+    expect(res.status).toBe(201);
+    const got = await (await fetch(`${base}/meetings/imp-asis`)).json();
+    expect(got.summary).toBe("### Resumo original do Granola");
+    expect(got.summaryMeta.provider).toBe("granola-import");
+  });
+
+  it("POST /import/granola rejects a payload without a transcript", async () => {
+    const res = await fetch(`${base}/import/granola`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "no transcript" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
   it("POST /enhance rejects a bad body with 400", async () => {
     const res = await fetch(`${base}/enhance`, {
       method: "POST",
