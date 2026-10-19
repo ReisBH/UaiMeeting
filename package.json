@@ -1,0 +1,25 @@
+{
+  "name": "uaimeeting",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UaiMeeting - notas de reunião potencializadas por IA. Mescla suas anotações curtas com o transcript da reunião e gera um resumo estruturado.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "demo": "tsx src/demo.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
