@@ -48,6 +48,36 @@ O modo `--live` usa o `AnthropicSummarizer`, que resolve credenciais do
 ambiente (`ANTHROPIC_API_KEY` ou um perfil `ant auth login`). O modelo padrão é
 `claude-opus-5-5`.
 
+## API HTTP
+
+Sobe um servidor (sem dependências extras, `node:http`) que expõe o enhancer:
+
+```bash
+npm start            # porta 3000 (ou $PORT); provider automático
+# UAIMEETING_LLM=mock|anthropic força o backend; padrão: anthropic se
+# ANTHROPIC_API_KEY estiver setada, senão mock.
+```
+
+| Rota | Descrição |
+|---|---|
+| `GET /health` | `{ status, provider, model? }` |
+| `POST /enhance` | recebe a reunião, devolve a reunião potencializada |
+
+Exemplo:
+
+```bash
+curl -s -X POST localhost:3000/enhance -H 'content-type: application/json' -d '{
+  "title": "Briefing do turno",
+  "notes": "alergia amendoim mesa 9\ncafé do bar: manutenção",
+  "transcript": "Microphone\nSpeaker A: alergia a amendoim na mesa 9\nSystem audio\nSpeaker B: a máquina de café precisa de limpeza"
+}'
+```
+
+O corpo aceita `transcript` (string crua no formato `Speaker X: …`) **ou**
+`transcriptBlocks` (array já estruturado). Campos: `title` (obrigatório),
+`notes`, `participants`, `meetingAt`, `connectedUserEmail`. Erros de validação
+voltam como `400 { error }`.
+
 ## Uso como biblioteca
 
 ```ts
@@ -86,6 +116,8 @@ console.log(enhanced.summary); // Markdown com seções ###
 | `src/prompt.ts` | System prompt e montagem da mensagem para o LLM. |
 | `src/providers.ts` | `AnthropicSummarizer` (Claude) e `MockSummarizer` (offline). |
 | `src/enhancer.ts` | Orquestra nota + transcript → resumo + metadados de proveniência. |
+| `src/api.ts` | Validação do request e handler puro (`toMeeting`, `handleEnhance`). |
+| `src/server.ts` | Servidor HTTP (`node:http`) com `/health` e `/enhance`. |
 | `src/sample.ts` | Reunião sintética de exemplo para a demo e os testes. |
 | `src/demo.ts` | Runner de linha de comando. |
 

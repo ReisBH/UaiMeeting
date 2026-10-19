@@ -2,6 +2,21 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { EnhanceInput, SummarizerProvider } from "./types.js";
 import { SYSTEM_PROMPT, buildUserMessage } from "./prompt.js";
 
+export type ProviderKind = "anthropic" | "mock";
+
+/**
+ * Pick a summarizer backend.
+ *
+ * Explicit `kind` wins; otherwise use Claude when a credential is present
+ * (`ANTHROPIC_API_KEY`) and fall back to the offline mock so the service always
+ * starts, even without configuration.
+ */
+export function createProvider(kind?: ProviderKind): SummarizerProvider {
+  const resolved: ProviderKind =
+    kind ?? (process.env.ANTHROPIC_API_KEY ? "anthropic" : "mock");
+  return resolved === "anthropic" ? new AnthropicSummarizer() : new MockSummarizer();
+}
+
 /**
  * Production backend: summarize with Claude.
  *
